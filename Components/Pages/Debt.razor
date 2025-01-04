@@ -1,0 +1,260 @@
+﻿@page "/debt"
+@using CW1Preyanshu.Models
+@using CW1Preyanshu.Components.Model
+@inject UserService UserService
+
+<h1 class="page-title">User Debts</h1>
+
+<!-- Debt Search Filter Section -->
+<div class="filter-container card">
+    <h2>Filter Debts</h2>
+    <div class="filter-fields">
+        <label for="descriptionFilter" class="filter-label">Filter by Description:</label>
+        <input id="descriptionFilter" @bind="filterDescription" class="input-field" placeholder="Enter description" />
+
+        <label for="dateRange" class="filter-label">Filter by Date Range:</label>
+        <div class="date-range-container">
+            <InputDate @bind-Value="filterStartDate" class="input-field date-range-input" placeholder="Start Date" />
+            <span class="to-text">to</span>
+            <InputDate @bind-Value="filterEndDate" class="input-field date-range-input" placeholder="End Date" />
+        </div>
+    </div>
+
+    <button @onclick="ApplyDebtFilters" class="btn btn-filter">Apply Filters</button>
+</div>
+
+<!-- Debt Table Section -->
+<div class="table-container card">
+    <h2>Debt History</h2>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Debt ID</th>
+                <th>Total Debt</th>
+                <th>Paid Amount</th>
+                <th>Remaining Debt</th>
+                <th>Date</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var debt in FilteredDebtsList)
+            {
+                <tr>
+                    <td>@debt.Id</td>
+                    <td>@debt.Amount</td>
+                    <td>@debt.PaidAmount</td>
+                    <td>@(debt.Amount - debt.PaidAmount)</td>
+                    <td>@debt.Date.ToString("MM/dd/yyyy")</td>
+                    <td>@debt.Description</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<h2 class="form-title">Add New Debt</h2>
+<EditForm Model="newDebt" OnValidSubmit="HandleDebtSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="form-group">
+        <label for="amount">Debt Amount</label>
+        <InputNumber id="amount" @bind-Value="newDebt.Amount" class="input-field" />
+    </div>
+
+    <div class="form-group">
+        <label for="paidAmount">Paid Amount</label>
+        <InputNumber id="paidAmount" @bind-Value="newDebt.PaidAmount" class="input-field" />
+    </div>
+
+    <div class="form-group">
+        <label for="description">Description</label>
+        <InputText id="description" @bind-Value="newDebt.Description" class="input-field" />
+    </div>
+
+    <div class="form-group">
+        <button type="submit" class="btn btn-submit">Add Debt</button>
+    </div>
+</EditForm>
+
+@code {
+    private AppData Data;
+    private Debts newDebt = new Debts();
+    private string filterDescription = "";
+    private DateTime? filterStartDate;
+    private DateTime? filterEndDate;
+    private List<Debts> FilteredDebtsList = new List<Debts>();
+
+    protected override void OnInitialized()
+    {
+        Data = UserService.LoadData() ?? new AppData();
+        ApplyDebtFilters();
+    }
+
+    private void HandleDebtSubmit()
+    {
+        newDebt.Id = Data.Debts.Count + 1;
+        newDebt.Date = DateTime.Now;
+        Data.Debts.Add(newDebt);
+        UserService.SaveData(Data);
+
+        // Reset form
+        newDebt = new Debts();
+        ApplyDebtFilters(); // Refresh the debt list
+    }
+
+    private void ApplyDebtFilters()
+    {
+        var filteredDebts = Data.Debts.AsQueryable();
+
+        if (!string.IsNullOrEmpty(filterDescription))
+        {
+            filteredDebts = filteredDebts.Where(d => d.Description.Contains(filterDescription, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (filterStartDate.HasValue)
+        {
+            filteredDebts = filteredDebts.Where(d => d.Date >= filterStartDate.Value);
+        }
+
+        if (filterEndDate.HasValue)
+        {
+            filteredDebts = filteredDebts.Where(d => d.Date <= filterEndDate.Value);
+        }
+
+        FilteredDebtsList = filteredDebts.ToList();
+    }
+}
+
+<style>
+    /* General Styles */
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #f4f7f6;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Page Title */
+    .page-title {
+        text-align: center;
+        color: #4b0082;
+        margin-top: 50px;
+        font-size: 36px;
+        font-weight: 700;
+    }
+
+    /* Table Styling */
+    .table {
+        width: 100%;
+        margin-top: 30px;
+        border-collapse: collapse;
+    }
+
+    .table-striped tr:nth-child(odd) {
+        background-color: #f9f9f9;
+    }
+
+    .table th,
+    .table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .table th {
+        background-color: #6a11cb;
+        color: white;
+        font-weight: bold;
+    }
+
+    /* Form Title */
+    .form-title {
+        color: #4b0082;
+        font-size: 28px;
+        font-weight: 600;
+        margin-top: 40px;
+        text-align: center;
+    }
+
+    /* Form Styling */
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .input-field {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        transition: border-color 0.3s ease;
+    }
+
+        .input-field:focus {
+            border-color: #6a11cb;
+            box-shadow: 0 0 10px rgba(106, 17, 203, 0.4);
+        }
+
+    /* Button Styling */
+    .btn-submit {
+        width: 100%;
+        padding: 14px;
+        font-size: 18px;
+        color: white;
+        background-color: #6a11cb;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+        .btn-submit:hover {
+            background-color: #2575fc;
+        }
+
+    /* Filter Section */
+    .filter-container {
+        margin-bottom: 30px;
+    }
+
+    .filter-fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+
+    .filter-label {
+        font-weight: bold;
+    }
+
+    .date-range-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .date-range-input {
+        width: 48%;
+    }
+
+    .to-text {
+        font-size: 1.2em;
+        color: #34495e;
+    }
+
+    /* Apply Filters Button */
+    .btn-filter {
+        background-color: #3498db;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1.1em;
+    }
+
+        .btn-filter:hover {
+            background-color: #2980b9;
+        }
+</style>

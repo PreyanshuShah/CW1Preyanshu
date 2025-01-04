@@ -1,0 +1,186 @@
+﻿@page "/register"
+@using CW1Preyanshu.Components.Model
+@using CW1Preyanshu.Models
+@inject UserService UserService
+@inject NavigationManager NavigationManager
+@using CW1Preyanshu.Components.Layout
+@layout FirstLayout
+
+<h3 class="page-title">Create Your Account</h3>
+
+<div class="form-container">
+    <div class="input-group">
+        <input id="username" @bind="RegisterUsername" placeholder="Username" class="input-field" />
+    </div>
+    <div class="input-group">
+        <input id="password" @bind="RegisterPassword" placeholder="Password" type="password" class="input-field" />
+    </div>
+    <div class="input-group">
+        <input id="email" @bind="RegisterEmail" placeholder="Email" class="input-field" />
+    </div>
+
+    <!-- Preferred Currency Dropdown -->
+    <div class="input-group">
+        <select @bind="PreferredCurrency" class="input-field">
+            <option value="">Select Currency</option>
+            @foreach (var currency in AvailableCurrencies)
+            {
+                <option value="@currency">@currency</option>
+            }
+        </select>
+    </div>
+
+    <button @onclick="RegisterPage" class="submit-btn">Register</button>
+
+    <!-- Back button -->
+    <button @onclick="GoBack" class="back-btn">Back to Login</button>
+</div>
+
+@if (!string.IsNullOrEmpty(Message))
+{
+    <p class="message-text">@Message</p>
+}
+
+@code {
+    private string RegisterUsername = "";
+    private string RegisterPassword = "";
+    private string RegisterEmail = "";
+    private string PreferredCurrency = "";
+    private string Message = "";
+
+    private List<User> Users = new();
+    private List<string> AvailableCurrencies = new() { "USD", "EUR", "GBP", "INR", "JPY" }; // Example currencies
+
+    // Load users when the page is initialized
+    protected override void OnInitialized() => Users = UserService.LoadUsers();
+
+    // Register the user
+    private void RegisterPage()
+    {
+        if (string.IsNullOrWhiteSpace(RegisterUsername) || string.IsNullOrWhiteSpace(RegisterPassword))
+        {
+            Message = "Username and password are required.";
+            return;
+        }
+
+        if (Users.Any(u => u.Username == RegisterUsername))
+        {
+            Message = "Username already exists.";
+            return;
+        }
+
+        // Create new user and hash the password
+        var newUser = new User
+            {
+                Username = RegisterUsername,
+                Password = UserService.HashPassword(RegisterPassword),  // Hash the password
+                Email = RegisterEmail,
+                PreferredCurrency = PreferredCurrency // Add preferred currency
+            };
+
+        Users.Add(newUser);
+        UserService.SaveUsers(Users);
+
+        Message = "Registration successful. Redirecting to login...";
+        Task.Delay(2000).ContinueWith(_ => NavigationManager.NavigateTo("/"));
+    }
+
+    // Go back to login page
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/");  // Redirect to login page
+    }
+}
+
+<style>
+    /* General styles */
+    body {
+        font-family: Arial, sans-serif;
+        background: linear-gradient(to right, #6a11cb, #2575fc); /* Colorful gradient */
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Center the form container */
+    .form-container {
+        width: 100%;
+        max-width: 400px;
+        margin: 100px auto;
+        padding: 30px;
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+
+    /* Page title styles */
+    .page-title {
+        font-size: 30px;
+        font-weight: bold;
+        color: #6a11cb;
+        margin-bottom: 20px;
+    }
+
+    /* Input field styles */
+    .input-group {
+        margin-bottom: 20px;
+    }
+
+    .input-field {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        outline: none;
+        transition: all 0.3s ease;
+    }
+
+        .input-field:focus {
+            border-color: #6a11cb;
+            box-shadow: 0 0 10px rgba(106, 17, 203, 0.4);
+        }
+
+    /* Submit button styles */
+    .submit-btn {
+        width: 100%;
+        padding: 14px;
+        font-size: 18px;
+        color: white;
+        background-color: #6a11cb;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+        .submit-btn:hover {
+            background-color: #2575fc;
+        }
+
+    /* Back button styles */
+    .back-btn {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px;
+        color: white;
+        background-color: #f39c12;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-top: 15px;
+        transition: background-color 0.3s ease;
+    }
+
+        .back-btn:hover {
+            background-color: #e67e22;
+        }
+
+    /* Message styles */
+    .message-text {
+        color: #e74c3c;
+        font-size: 16px;
+        font-weight: bold;
+        margin-top: 15px;
+    }
+</style>

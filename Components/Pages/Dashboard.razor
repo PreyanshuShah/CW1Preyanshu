@@ -1,0 +1,275 @@
+﻿@page "/dashboard"
+@using CW1Preyanshu.Components.Model
+@inject UserService UserService
+@inject UserService UserService
+@inject NavigationManager NavigationManager
+
+
+
+<h1 class="page-title">Dashboard</h1>
+
+<!-- Total Credit, Debit, Balance, and Remaining Debts Section -->
+<div class="summary-card card">
+    <h2>Total</h2>
+    <div class="summary-content">
+        <div class="summary-item">
+            <h4>Total Credit</h4>
+            <p>@totalCredit</p>
+        </div>
+        <div class="summary-item">
+            <h4>Total Debit</h4>
+            <p>@totalDebit</p>
+        </div>
+        <div class="summary-item">
+            <h4>Balance</h4>
+            <p>@balance</p>
+        </div>
+        <div class="summary-item">
+            <h4>Remaining Debts</h4>
+            <p>@remainingDebts</p>
+        </div>
+    </div>
+</div>
+
+<!-- Highest 5 Transactions Section -->
+<div class="card">
+    <h2>Top 5 Transactions (Highest)</h2>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Credit</th>
+                <th>Date</th>
+                <th>Amount</th>
+                <th>Tags</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var transaction in HighestTransactions)
+            {
+                <tr>
+                    <td>@transaction.Credit</td>
+                    <td>@transaction.Date.ToString("MM/dd/yyyy")</td>
+                    <td>@(transaction.Credit)</td>
+                    <td>@string.Join(", ", transaction.Tags)</td>
+                    <td>@transaction.Description</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- Lowest 5 Transactions Section -->
+<div class="card">
+    <h2>Bottom 5 Transactions (Lowest)</h2>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Credit</th>
+                <th>Date</th>
+                <th>Amount</th>
+                <th>Tags</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var transaction in LowestTransactions)
+            {
+                <tr>
+                    <td>@transaction.Credit</td>
+                    <td>@transaction.Date.ToString("MM/dd/yyyy")</td>
+                    <td>@(transaction.Credit)</td>
+                    <td>@string.Join(", ", transaction.Tags)</td>
+                    <td>@transaction.Description</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- Logout Button -->
+<button @onclick="Logout">Logout</button>
+
+@code {
+    private AppData Data;
+    private List<Transactions> HighestTransactions = new List<Transactions>();
+    private List<Transactions> LowestTransactions = new List<Transactions>();
+    private decimal totalCredit;
+    private decimal totalDebit;
+    private decimal balance;
+    private decimal remainingDebts;
+
+    public Dashboard()
+    {
+    }
+
+    protected override void OnInitialized()
+    {
+        Data = UserService.LoadData();
+
+        // Calculate total credit and debit
+        totalCredit = Data.Transactions.Sum(t => t.Credit);
+        totalDebit = Data.Transactions.Sum(t => t.Debit);
+
+        // Calculate balance (Credit - Debit)
+        balance = totalCredit - totalDebit;
+
+        // Calculate the total remaining debts (Debt Amount - Paid Amount)
+        remainingDebts = Data.Debts.Sum(d => d.Amount - d.PaidAmount);
+
+        // Sort the transactions in descending order by Credit (for highest)
+        HighestTransactions = Data.Transactions
+            .OrderByDescending(t => t.Credit)
+            .Take(5)
+            .ToList();
+
+        // Sort the transactions in ascending order by Credit (for lowest)
+        LowestTransactions = Data.Transactions
+            .OrderBy(t => t.Credit)
+            .Take(5)
+            .ToList();
+    }
+
+    private void Logout()
+    {
+        UserService.LogoutUser(); // Clear current user session
+        NavigationManager.NavigateTo("/"); // Redirect to the login page
+    }
+
+}
+
+<style>
+    /* General Page Styles */
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f7f6;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Page Title */
+    .page-title {
+        text-align: center;
+        color: #4B0082;
+        font-size: 48px;
+        font-weight: bold;
+        margin-top: 50px;
+        text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Summary Card */
+    .summary-card {
+        background-color: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        margin: 30px 20px;
+        padding: 30px;
+        text-align: center;
+    }
+
+    .summary-content {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .summary-item {
+        font-size: 18px;
+        color: #333;
+    }
+
+        .summary-item h4 {
+            font-size: 20px;
+            color: #4B0082;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .summary-item p {
+            font-size: 24px;
+            color: #333;
+        }
+
+    /* Table Styles */
+    .table {
+        width: 100%;
+        margin-top: 30px;
+        border-collapse: collapse;
+    }
+
+    .table-striped tr:nth-child(odd) {
+        background-color: #f9f9f9;
+    }
+
+    .table th,
+    .table td {
+        padding: 12px;
+        text-align: center;
+        border-bottom: 1px solid #ddd;
+        font-size: 16px;
+    }
+
+    .table th {
+        background-color: #6A11CB;
+        color: white;
+        font-weight: bold;
+    }
+
+    .table td {
+        color: #555;
+    }
+
+    /* Card Sections */
+    .card {
+        background-color: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        margin: 30px 20px;
+        padding: 30px;
+    }
+
+    /* Logout Button */
+    button {
+        background-color: #FF6347;
+        color: white;
+        font-size: 18px;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        width: 200px;
+        margin: 30px auto;
+        display: block;
+        transition: background-color 0.3s ease;
+    }
+
+        button:hover {
+            background-color: #e53e3e;
+        }
+
+    /* Responsive Styling */
+    (max-width: 768px) {
+        .summary-content
+
+    {
+        grid-template-columns: 1fr;
+    }
+
+    .summary-item h4 {
+        font-size: 18px;
+    }
+
+    .summary-item p {
+        font-size: 20px;
+    }
+
+    .table th, .table td {
+        font-size: 14px;
+    }
+
+    button {
+        width: 100%;
+    }
+
+    }
+</style>
