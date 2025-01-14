@@ -2,6 +2,7 @@
 @using CW1Preyanshu.Models
 @using CW1Preyanshu.Components.Model
 @inject UserService UserService
+@inject CurrencyService CurrencyService
 
 <h1 class="page-title">User Debts</h1>
 
@@ -34,7 +35,7 @@
                 <th>Paid Amount</th>
                 <th>Remaining Debt</th>
                 <th>Date</th>
-                <th>Description</th>
+                <th>Source</th>
             </tr>
         </thead>
         <tbody>
@@ -42,9 +43,9 @@
             {
                 <tr>
                     <td>@debt.Id</td>
-                    <td>@debt.Amount</td>
-                    <td>@debt.PaidAmount</td>
-                    <td>@(debt.Amount - debt.PaidAmount)</td>
+                    <td>@FormatCurrency(debt.Amount)</td>
+                    <td>@FormatCurrency(debt.PaidAmount)</td>
+                    <td>@FormatCurrency(debt.Amount - debt.PaidAmount)</td>
                     <td>@debt.Date.ToString("MM/dd/yyyy")</td>
                     <td>@debt.Description</td>
                 </tr>
@@ -69,7 +70,7 @@
     </div>
 
     <div class="form-group">
-        <label for="description">Description</label>
+        <label for="description">Source</label>
         <InputText id="description" @bind-Value="newDebt.Description" class="input-field" />
     </div>
 
@@ -125,7 +126,14 @@
 
         FilteredDebtsList = filteredDebts.ToList();
     }
+
+    // Helper method to format debt amounts according to the selected currency
+    private string FormatCurrency(decimal amount)
+    {
+        return $"{CurrencyService.GetPreferredCurrency()} {amount:F2}";
+    }
 }
+
 
 <style>
     /* General Styles */

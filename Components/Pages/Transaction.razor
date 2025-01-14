@@ -1,6 +1,7 @@
 ﻿@page "/transaction"
 @using CW1Preyanshu.Components.Model
 @inject UserService UserService
+@inject CurrencyService CurrencyService
 
 <h1 class="text-center mb-4">User Transactions</h1>
 
@@ -16,6 +17,7 @@
                 <th>Date</th>
                 <th>Description</th>
                 <th>Tags</th> <!-- Display Tags -->
+                <th>Category</th> <!-- Display Category -->
             </tr>
         </thead>
         <tbody>
@@ -23,12 +25,13 @@
             {
                 <tr>
                     <td>@transaction.Id</td>
-                    <td>@(Data.Transactions.Sum(t => t.Credit) - Data.Transactions.Sum(t => t.Debit))</td>
-                    <td>@transaction.Debit</td>
-                    <td>@transaction.Credit</td>
+                    <td>@FormatCurrency(Data.Transactions.Sum(t => t.Credit) - Data.Transactions.Sum(t => t.Debit))</td>
+                    <td>@FormatCurrency(transaction.Debit)</td>
+                    <td>@FormatCurrency(transaction.Credit)</td>
                     <td>@transaction.Date.ToString("MM/dd/yyyy")</td>
                     <td>@transaction.Description</td>
                     <td>@string.Join(", ", transaction.Tags)</td> <!-- Display Tags -->
+                    <td>@transaction.Category</td> <!-- Display Category -->
                 </tr>
             }
         </tbody>
@@ -40,6 +43,11 @@
 <EditForm Model="newTransaction" OnValidSubmit="HandleTransactionSubmit">
     <DataAnnotationsValidator />
     <ValidationSummary />
+
+    @if (!string.IsNullOrEmpty(balanceError))
+    {
+        <div class="alert alert-danger">@balanceError</div>
+    }
 
     <div class="form-row">
         <div class="form-group col-md-6">
@@ -61,6 +69,13 @@
     <div class="form-group">
         <label for="tags">Tags</label> <!-- Tags Input -->
         <InputText id="tags" @bind-Value="newTransaction.TagsString" class="form-control" placeholder="Enter tags separated by commas" />
+        <small class="form-text text-muted">You can enter your custom tags.</small>
+    </div>
+
+    <!-- Category Input -->
+    <div class="form-group">
+        <label for="category">Category</label>
+        <InputText id="category" @bind-Value="newTransaction.Category" class="form-control" placeholder="Enter category" />
     </div>
 
     <div class="form-group text-center">
@@ -71,146 +86,154 @@
 @code {
     private AppData Data;
     private Transactions newTransaction = new Transactions();
+    private string balanceError;
 
     protected override void OnInitialized()
     {
-        Data = UserService.LoadData();
+        Data = UserService.LoadData(); // Load user data
+        SetDefaultTags(); // Set default tags for the transaction
+    }
+
+    private void SetDefaultTags()
+    {
+        // Default tags to show in the Tags field (this will be shown if the user doesn't input any tags)
+        newTransaction.TagsString = "Food, Entertainment, Travel"; // Default tags
     }
 
     private void HandleTransactionSubmit()
     {
+        // Calculate the current main balance (credit - debit)
+        decimal currentBalance = Data.Transactions.Sum(t => t.Credit) - Data.Transactions.Sum(t => t.Debit);
+
+        // Check if the debit transaction is trying to exceed the balance
+        if (newTransaction.Debit > currentBalance)
+        {
+            balanceError = "Insufficient balance to make this withdrawal.";
+            return;  // Abort the transaction if the balance check fails
+        }
+
+        // If everything is valid, clear any existing error message
+        balanceError = null;
+
         newTransaction.Id = Data.Transactions.Count + 1;
         newTransaction.Date = DateTime.Now;
+
+        // Parse Tags String into List of Tags (custom tags can be added here)
+        newTransaction.Tags = newTransaction.TagsString.Split(',').Select(t => t.Trim()).ToList();
+
+        // Add new transaction to data
         Data.Transactions.Add(newTransaction);
+
+        // Save data for the current user
         UserService.SaveData(Data);
 
         // Reset form after submitting
         newTransaction = new Transactions();
     }
+
+    // Helper method to format currency based on selected currency from CurrencyService
+    private string FormatCurrency(decimal amount)
+    {
+        string currencySymbol = CurrencyService.GetPreferredCurrency(); // Get the selected currency (NPR/USD/etc.)
+
+        // Adjust the format depending on the currency (optional: you can add more specific formatting rules per currency)
+        return $"{currencySymbol} {amount:F2}";
+    }
 }
 
 <style>
-    /* General page styling */
-    body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #f9f9f9;
-        color: #343a40;
-        margin: 0;
-    }
-
+    /* Global Styles */
     h1, h2 {
-        font-family: 'Arial', sans-serif;
-        color: #4B0082;
-        text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Table styling */
-    .table {
-        width: 100%;
-        margin-top: 20px;
-        border-collapse: collapse;
-    }
-
-    .thead-dark {
-        background-color: #4B0082;
-        color: white;
-    }
-
-    th, td {
-        text-align: center;
-        padding: 14px;
-        border: 1px solid #ddd;
-    }
-
-    tr:nth-child(even) {
-        background-color: #f2f2f2;
-    }
-
-    tr:hover {
-        background-color: #e6e6e6;
-        transform: scale(1.02);
-        transition: transform 0.3s ease-in-out;
-    }
-
-    /* Form styling */
-    .form-group {
-        margin-bottom: 25px;
-    }
-
-    .form-row {
-        display: flex;
-        justify-content: space-between;
-        gap: 15px;
-    }
-
-    .form-control {
-        border-radius: 8px;
-        border: 1px solid #ccc;
-        padding: 12px;
-        width: 100%;
-        font-size: 16px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s ease;
-    }
-
-        .form-control:focus {
-            border-color: #4B0082;
-            outline: none;
-            box-shadow: 0 0 10px rgba(75, 0, 130, 0.5);
-        }
-
-    .btn {
-        padding: 12px 24px;
-        font-size: 18px;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-    }
-
-    .btn-success {
-        background-color: #28a745;
-        color: white;
-    }
-
-        .btn-success:hover {
-            background-color: #218838;
-        }
-
-    /* Styling for the Add Transaction button */
-    .btn-success {
-        display: inline-block;
-        text-align: center;
-        width: 250px;
+        color: #343a40;
+        font-weight: 600;
+        padding-bottom:10;
     }
 
     .table-responsive {
-        overflow-x: auto;
-        margin-top: 40px;
+        margin-top: 20px;
     }
 
-    /* Responsive design for smaller screens */
-     (max-width: 768px) {
-        .form-row
+    .table {
+        border-collapse: collapse;
+        width: 100%;
+    }
 
-    {
-        flex-direction: column;
+    .thead-dark {
+        background-color: #343a40;
+        color: white;
+    }
+
+    .table-striped tbody tr:nth-of-type(odd) {
+        background-color: #f8f9fa;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: #f1f1f1;
+    }
+
+    .table th, .table td {
+        padding: 12px;
+        text-align: left;
+        border: 1px solid #dee2e6;
+    }
+
+    .form-row {
+        margin-top: 15px;
     }
 
     .form-group {
         margin-bottom: 15px;
     }
 
-    .btn {
-        width: 100%;
+    .form-control {
+        font-size: 1.1rem;
     }
 
-    th, td {
-        font-size: 14px;
+    .btn-lg {
+        padding: 0.75rem 1.5rem;
+        font-size: 1.25rem;
     }
 
-    h1, h2 {
-        font-size: 24px;
+    .btn-success {
+        background-color: #28a745;
+        border-color: #28a745;
     }
 
+        .btn-success:hover {
+            background-color: #218838;
+            border-color: #1e7e34;
+        }
+
+    .text-center {
+        text-align: center;
+    }
+
+    .mt-5 {
+        margin-top: 3rem;
+    }
+
+    .mb-4 {
+        margin-bottom: 1.5rem;
+    }
+
+    .table td {
+        font-size: 1rem;
+    }
+
+    label {
+        font-weight: 500;
+    }
+
+    .alert-danger {
+        margin-top: 20px;
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+    }
+
+    /* Additional styling for tags input */
+    .form-text {
+        font-size: 0.9rem;
+        color: #6c757d;
     }
 </style>

@@ -3,6 +3,7 @@
 @inject NavigationManager NavigationManager
 @using CW1Preyanshu.Components.Layout
 @using CW1Preyanshu.Components.Model
+@using CW1Preyanshu.Models
 
 @layout FirstLayout
 
@@ -10,10 +11,10 @@
 
 <div class="form-container">
     <div class="input-group">
-        <input id="username" @bind="LoginUsername" placeholder="Username" class="input-field" />
+        <input id="login-username" @bind="LoginUsername" placeholder="Username" class="input-field" />
     </div>
     <div class="input-group">
-        <input id="password" @bind="LoginPassword" placeholder="Password" type="password" class="input-field" />
+        <input id="login-password" @bind="LoginPassword" placeholder="Password" type="password" class="input-field" />
     </div>
     <button @onclick="LoginPage" class="submit-btn">Login</button>
     <div class="register-link">
@@ -30,115 +31,109 @@
     private string LoginUsername = "";
     private string LoginPassword = "";
     private string Message = "";
-    private AppData data;
+    private List<User> Users = new();
 
     protected override void OnInitialized()
     {
-        var userService = new UserService();
-        data = userService.LoadData();
+        Users = UserService.LoadUsers();  // Load users
     }
 
-    private void LoginPage()
+    private async Task LoginPage()
     {
-        var user = data.Users.FirstOrDefault(u => u.Username == LoginUsername);
+        if (string.IsNullOrWhiteSpace(LoginUsername) || string.IsNullOrWhiteSpace(LoginPassword))
+        {
+            Message = "Please enter both username and password.";
+            return;
+        }
 
+        // Validate user login by hashed password
+        var user = Users.FirstOrDefault(u => u.Username.Equals(LoginUsername, StringComparison.OrdinalIgnoreCase));
         if (user != null && UserService.ValidatePassword(LoginPassword, user.Password))
         {
-            NavigationManager.NavigateTo("/dashboard");
+            Message = "Login successful! Redirecting...";
+            StateHasChanged();  // Forces the UI to update
+            await Task.Delay(2000);  // Wait for 2 seconds before navigating
+            UserService.SetCurrentUser(user);  // Set logged-in user
+            NavigationManager.NavigateTo("/dashboard");  // Redirect to user dashboard
+            return;
         }
-        else
-        {
-            Message = "Invalid username or password.";
-        }
+
+        Message = "Invalid username or password.";
     }
 }
 
 <style>
-/* General page styling */
-body {
-    font-family: Arial, sans-serif;
-    background: linear-gradient(to right, #ff7e5f, #feb47b); /* Beautiful gradient background */
-    margin: 0;
-    padding: 0;
-}
+    /* Basic styling for the page */
+    .page-title {
+        text-align: center;
+        margin-top: 20px;
+        font-size: 28px;
+        font-weight: bold;
+    }
 
-/* Form container styling */
-.form-container {
-    width: 100%;
-    max-width: 400px;
-    margin: 150px auto;
-    padding: 30px;
-    background: #ffffff;
-    border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    text-align: center;
-}
+    /* Form container */
+    .form-container {
+        max-width: 400px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    }
 
-/* Page title styling */
-.page-title {
-    font-size: 28px;
-    font-weight: bold;
-    color: #ff7e5f;
-    margin-bottom: 30px;
-}
+    /* Input fields */
+    .input-group {
+        margin-bottom: 15px;
+    }
 
-/* Input field styling */
-.input-group {
-    margin-bottom: 20px;
-}
+    .input-field {
+        width: 100%;
+        padding: 10px;
+        margin: 5px 0;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+    }
 
-.input-field {
-    width: 100%;
-    padding: 12px;
-    font-size: 16px;
-    border: 2px solid #ddd;
-    border-radius: 8px;
-    outline: none;
-    transition: all 0.3s ease;
-}
+        .input-field:focus {
+            outline: none;
+            border-color: #007bff;
+        }
 
-.input-field:focus {
-    border-color: #ff7e5f;
-    box-shadow: 0 0 10px rgba(255, 126, 95, 0.5);
-}
+    /* Button styles */
+    .submit-btn {
+        width: 100%;
+        padding: 10px;
+        font-size: 16px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
 
-/* Submit button styling */
-.submit-btn {
-    width: 100%;
-    padding: 14px;
-    font-size: 18px;
-    color: white;
-    background-color: #ff7e5f;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
+        .submit-btn:hover {
+            background-color: #0056b3;
+        }
 
-.submit-btn:hover {
-    background-color: #feb47b;
-}
+    .register-link {
+        text-align: center;
+        margin-top: 15px;
+    }
 
-/* Register link styling */
-.register-link {
-    margin-top: 15px;
-    font-size: 14px;
-}
+        .register-link a {
+            color: #007bff;
+            text-decoration: none;
+        }
 
-.register-link a {
-    color: #ff7e5f;
-    text-decoration: none;
-}
+            .register-link a:hover {
+                text-decoration: underline;
+            }
 
-.register-link a:hover {
-    text-decoration: underline;
-}
-
-/* Error message styling */
-.message-text {
-    color: #e74c3c;
-    font-size: 16px;
-    font-weight: bold;
-    margin-top: 15px;
-}
+    .message-text {
+        text-align: center;
+        color: red;
+        margin-top: 10px;
+        font-size: 16px;
+    }
 </style>

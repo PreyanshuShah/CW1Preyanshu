@@ -2,6 +2,7 @@
 @using CW1Preyanshu.Components.Model
 @using CW1Preyanshu.Models
 @inject UserService UserService
+@inject CurrencyService CurrencyService
 @inject NavigationManager NavigationManager
 @using CW1Preyanshu.Components.Layout
 @layout FirstLayout
@@ -49,10 +50,13 @@
     private string Message = "";
 
     private List<User> Users = new();
-    private List<string> AvailableCurrencies = new() { "USD", "EUR", "GBP", "INR", "JPY" }; // Example currencies
+    private List<string> AvailableCurrencies = new() { "USD", "NPR" }; // Nepalese and USD currencies
 
     // Load users when the page is initialized
-    protected override void OnInitialized() => Users = UserService.LoadUsers();
+    protected override void OnInitialized()
+    {
+        Users = UserService.LoadUsers();
+    }
 
     // Register the user
     private void RegisterPage()
@@ -69,19 +73,31 @@
             return;
         }
 
-        // Create new user and hash the password
+        if (string.IsNullOrWhiteSpace(PreferredCurrency))
+        {
+            Message = "Please select a preferred currency.";
+            return;
+        }
+
         var newUser = new User
             {
                 Username = RegisterUsername,
                 Password = UserService.HashPassword(RegisterPassword),  // Hash the password
                 Email = RegisterEmail,
-                PreferredCurrency = PreferredCurrency // Add preferred currency
+                PreferredCurrency = PreferredCurrency
             };
 
-        Users.Add(newUser);
-        UserService.SaveUsers(Users);
+        // Assign a unique UserId
+        newUser.UserId = Users.Any() ? Users.Max(u => u.UserId) + 1 : 1;
 
-        Message = "Registration successful. Redirecting to login...";
+        Users.Add(newUser);
+        UserService.SaveUsers(Users);  // Save user data
+
+        Message = "User registration successful. Redirecting to login...";
+
+        // Save the selected currency in the CurrencyService
+        CurrencyService.SetPreferredCurrency(PreferredCurrency);
+
         Task.Delay(2000).ContinueWith(_ => NavigationManager.NavigateTo("/"));
     }
 
@@ -111,6 +127,10 @@
         border-radius: 10px;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         text-align: center;
+    }
+
+    h3 {
+        color: black;
     }
 
     /* Page title styles */

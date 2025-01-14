@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using CW1Preyanshu.Models;
-using CW1Preyanshu.Models;
+
 
 namespace CW1Preyanshu.Components.Model
 {
@@ -15,3 +15,4 @@ namespace CW1Preyanshu.Components.Model
         public List<Debts> Debts { get; set; } = new List<Debts>();
     }
 }
+

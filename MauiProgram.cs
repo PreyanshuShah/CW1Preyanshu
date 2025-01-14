@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using CW1Preyanshu.Components.Model;
+using CW1Preyanshu.Models;
+using Microsoft.Extensions.Logging;
 
 namespace CW1Preyanshu
 {
@@ -14,14 +16,19 @@ namespace CW1Preyanshu
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 });
 
-            builder.Services.AddMauiBlazorWebView();
+            // Register services for dependency injection
+            builder.Services.AddSingleton<UserService>();        // Register UserService
+            builder.Services.AddSingleton<CurrencyService>();    // Register CurrencyService
+              // Register AdminService
+
+            builder.Services.AddMauiBlazorWebView(); // Add MAUI Blazor support
 
 #if DEBUG
-    		builder.Services.AddBlazorWebViewDeveloperTools();
-    		builder.Logging.AddDebug();
+            builder.Services.AddBlazorWebViewDeveloperTools(); // Add developer tools in debug mode
+            builder.Logging.AddDebug(); // Add debug logging
 #endif
 
-            return builder.Build();
+            return builder.Build(); // Build and return the app
         }
     }
 }

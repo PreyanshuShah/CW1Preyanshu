@@ -1,32 +1,174 @@
 ﻿@page "/dashboard"
 @using CW1Preyanshu.Components.Model
 @inject UserService UserService
-@inject UserService UserService
+@inject CurrencyService CurrencyService
 @inject NavigationManager NavigationManager
 
+<style>
+    /* Style for the page title */
+    .page-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
+    }
 
+    /* Style for the filter container */
+    .filter-container {
+        margin: 20px 0;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Style for the filter label */
+    .filter-label {
+        font-weight: bold;
+    }
+
+    /* Style for the input fields in filters */
+    .input-field {
+        width: 200px;
+        padding: 8px;
+        margin: 10px 0;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+    }
+
+    /* Style for the filter buttons */
+    .btn-filter {
+        padding: 8px 16px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    /* Style for the summary card */
+    .summary-card {
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+    }
+
+        .summary-card h2 {
+            font-size: 22px;
+            margin-bottom: 15px;
+        }
+
+    .summary-content {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .summary-item {
+        flex: 1;
+        min-width: 200px;
+        background-color: #f1f1f1;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+    }
+
+    /* Style for the table */
+    table {
+        width: 100%;
+        margin-top: 20px;
+        border-collapse: collapse;
+    }
+
+    table, th, td {
+        border: 1px solid #ddd;
+    }
+
+    th, td {
+        padding: 12px;
+        text-align: left;
+    }
+
+    th {
+        background-color: #f8f9fa;
+    }
+
+    /* Style for the logout button */
+    button {
+        padding: 10px 15px;
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 20px;
+    }
+
+        button:hover {
+            background-color: #c82333;
+        }
+
+    /* Card style for transactions */
+    .card {
+        padding: 20px;
+        margin-top: 30px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+        .card h2 {
+            font-size: 22px;
+            margin-bottom: 15px;
+        }
+
+        .card .table {
+            margin-top: 20px;
+        }
+</style>
 
 <h1 class="page-title">Dashboard</h1>
 
-<!-- Total Credit, Debit, Balance, and Remaining Debts Section -->
+<!-- Currency Change Section -->
+<div class="filter-container">
+    <h3>Change Currency</h3>
+    <div class="filter-fields">
+        <label for="currencySelect" class="filter-label">Select Currency:</label>
+        <select @bind="selectedCurrency" class="input-field">
+            @foreach (var currency in supportedCurrencies)
+            {
+                <option value="@currency">@currency</option>
+            }
+        </select>
+    </div>
+
+    <button @onclick="UpdateCurrency" class="btn btn-filter">Change Currency</button>
+</div>
+
+<!-- Summary Card -->
 <div class="summary-card card">
     <h2>Total</h2>
     <div class="summary-content">
         <div class="summary-item">
             <h4>Total Credit</h4>
-            <p>@totalCredit</p>
+            <p>@FormatCurrency(totalCredit)</p>
         </div>
         <div class="summary-item">
             <h4>Total Debit</h4>
-            <p>@totalDebit</p>
+            <p>@FormatCurrency(totalDebit)</p>
         </div>
         <div class="summary-item">
             <h4>Balance</h4>
-            <p>@balance</p>
+            <p>@FormatCurrency(balance)</p>
         </div>
         <div class="summary-item">
             <h4>Remaining Debts</h4>
-            <p>@remainingDebts</p>
+            <p>@FormatCurrency(remainingDebts)</p>
+        </div>
+        <div class="summary-item">
+            <h4>Paid Amount</h4>
+            <p>@FormatCurrency(totalPaidAmount)</p>
         </div>
     </div>
 </div>
@@ -34,53 +176,105 @@
 <!-- Highest 5 Transactions Section -->
 <div class="card">
     <h2>Top 5 Transactions (Highest)</h2>
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Credit</th>
-                <th>Date</th>
-                <th>Amount</th>
-                <th>Tags</th>
-                <th>Description</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var transaction in HighestTransactions)
-            {
+    @if (HighestTransactions.Any())
+    {
+        <table class="table table-striped">
+            <thead>
                 <tr>
-                    <td>@transaction.Credit</td>
-                    <td>@transaction.Date.ToString("MM/dd/yyyy")</td>
-                    <td>@(transaction.Credit)</td>
-                    <td>@string.Join(", ", transaction.Tags)</td>
-                    <td>@transaction.Description</td>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Tags</th>
+                    <th>Description</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var transaction in HighestTransactions)
+                {
+                    <tr>
+                        <td>@transaction.Date.ToString("MM/dd/yyyy")</td>
+                        <td>@FormatCurrency(transaction.Credit)</td>
+                        <td>@string.Join(", ", transaction.Tags)</td>
+                        <td>@transaction.Description</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p>No transactions available.</p>
+    }
 </div>
 
 <!-- Lowest 5 Transactions Section -->
 <div class="card">
     <h2>Bottom 5 Transactions (Lowest)</h2>
+    @if (LowestTransactions.Any())
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Tags</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var transaction in LowestTransactions)
+                {
+                    <tr>
+                        <td>@transaction.Date.ToString("MM/dd/yyyy")</td>
+                        <td>@FormatCurrency(transaction.Credit)</td>
+                        <td>@string.Join(", ", transaction.Tags)</td>
+                        <td>@transaction.Description</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p>No transactions available.</p>
+    }
+</div>
+
+<!-- Debt Section with Date Range Filter -->
+<div class="card">
+    <h2>Debts</h2>
+
+    <!-- Debt Filter Section -->
+    <div class="filter-container">
+        <h3>Filter Debts by Date Range</h3>
+        <div class="filter-fields">
+            <label for="debtStartDate" class="filter-label">Start Date:</label>
+            <InputDate @bind-Value="filterStartDate" class="input-field" />
+
+            <label for="debtEndDate" class="filter-label">End Date:</label>
+            <InputDate @bind-Value="filterEndDate" class="input-field" />
+        </div>
+
+        <button @onclick="ApplyDebtFilters" class="btn btn-filter">Apply Filters</button>
+    </div>
+
+    <!-- Debt Table Section -->
     <table class="table table-striped">
         <thead>
             <tr>
-                <th>Credit</th>
+                <th>Debt ID</th>
+                <th>Remaining Debt</th>
                 <th>Date</th>
-                <th>Amount</th>
-                <th>Tags</th>
-                <th>Description</th>
+                <th>Source</th>
             </tr>
         </thead>
         <tbody>
-            @foreach (var transaction in LowestTransactions)
+            @foreach (var debt in FilteredDebtsList)
             {
                 <tr>
-                    <td>@transaction.Credit</td>
-                    <td>@transaction.Date.ToString("MM/dd/yyyy")</td>
-                    <td>@(transaction.Credit)</td>
-                    <td>@string.Join(", ", transaction.Tags)</td>
-                    <td>@transaction.Description</td>
+                    <td>@debt.Id</td>
+                    <td>@FormatCurrency(debt.Amount - debt.PaidAmount)</td>
+                    <td>@debt.Date.ToString("MM/dd/yyyy")</td>
+                    <td>@debt.Description</td>
                 </tr>
             }
         </tbody>
@@ -94,182 +288,104 @@
     private AppData Data;
     private List<Transactions> HighestTransactions = new List<Transactions>();
     private List<Transactions> LowestTransactions = new List<Transactions>();
+    private List<Debts> FilteredDebtsList = new List<Debts>();
     private decimal totalCredit;
     private decimal totalDebit;
     private decimal balance;
     private decimal remainingDebts;
+    private decimal totalPaidAmount;
+    private string selectedCurrency;
+    private DateTime? filterStartDate;
+    private DateTime? filterEndDate;
 
-    public Dashboard()
-    {
-    }
+    private List<string> supportedCurrencies = new List<string> { "USD", "NPR" }; // Supported currencies
+
+    private const decimal UsdToNprRate = 130; // Conversion rate: 1 USD = 130 NPR
 
     protected override void OnInitialized()
     {
+        if (UserService.CurrentUser == null)
+        {
+            // Redirect to login if no user is logged in
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+
+        // Load data for the current user
         Data = UserService.LoadData();
 
-        // Calculate total credit and debit
+        // Get the preferred currency for the user
+        selectedCurrency = CurrencyService.GetPreferredCurrency();
+
+        // Calculate total credit and debit for current user's transactions
         totalCredit = Data.Transactions.Sum(t => t.Credit);
         totalDebit = Data.Transactions.Sum(t => t.Debit);
 
         // Calculate balance (Credit - Debit)
         balance = totalCredit - totalDebit;
 
-        // Calculate the total remaining debts (Debt Amount - Paid Amount)
+        // Calculate remaining debts (Debt Amount - Paid Amount)
         remainingDebts = Data.Debts.Sum(d => d.Amount - d.PaidAmount);
 
-        // Sort the transactions in descending order by Credit (for highest)
+        // Calculate total paid amount from debts
+        totalPaidAmount = Data.Debts.Sum(d => d.PaidAmount);
+
+        // Get highest 5 transactions
         HighestTransactions = Data.Transactions
             .OrderByDescending(t => t.Credit)
             .Take(5)
             .ToList();
 
-        // Sort the transactions in ascending order by Credit (for lowest)
+        // Get lowest 5 transactions
         LowestTransactions = Data.Transactions
             .OrderBy(t => t.Credit)
             .Take(5)
             .ToList();
+
+        // Initialize the debt filter
+        ApplyDebtFilters();
+    }
+
+    private void ApplyDebtFilters()
+    {
+        var filteredDebts = Data.Debts.AsQueryable();
+
+        if (filterStartDate.HasValue)
+        {
+            filteredDebts = filteredDebts.Where(d => d.Date >= filterStartDate.Value);
+        }
+
+        if (filterEndDate.HasValue)
+        {
+            filteredDebts = filteredDebts.Where(d => d.Date <= filterEndDate.Value);
+        }
+
+        FilteredDebtsList = filteredDebts.ToList();
+    }
+
+    private string FormatCurrency(decimal amount)
+    {
+        decimal convertedAmount = amount;
+
+        // Convert based on selected currency
+        if (selectedCurrency == "USD")
+        {
+            convertedAmount = amount / UsdToNprRate; // Convert from NPR to USD
+        }
+
+        // For NPR, no conversion is needed
+        return $"{selectedCurrency} {convertedAmount:F2}";
+    }
+
+
+    private void UpdateCurrency()
+    {
+        CurrencyService.SetPreferredCurrency(selectedCurrency);
     }
 
     private void Logout()
     {
-        UserService.LogoutUser(); // Clear current user session
-        NavigationManager.NavigateTo("/"); // Redirect to the login page
+        UserService.LogoutUser();
+        NavigationManager.NavigateTo("/");
     }
-
 }
-
-<style>
-    /* General Page Styles */
-    body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #f4f7f6;
-        margin: 0;
-        padding: 0;
-    }
-
-    /* Page Title */
-    .page-title {
-        text-align: center;
-        color: #4B0082;
-        font-size: 48px;
-        font-weight: bold;
-        margin-top: 50px;
-        text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Summary Card */
-    .summary-card {
-        background-color: #fff;
-        border-radius: 12px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        margin: 30px 20px;
-        padding: 30px;
-        text-align: center;
-    }
-
-    .summary-content {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
-    }
-
-    .summary-item {
-        font-size: 18px;
-        color: #333;
-    }
-
-        .summary-item h4 {
-            font-size: 20px;
-            color: #4B0082;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-
-        .summary-item p {
-            font-size: 24px;
-            color: #333;
-        }
-
-    /* Table Styles */
-    .table {
-        width: 100%;
-        margin-top: 30px;
-        border-collapse: collapse;
-    }
-
-    .table-striped tr:nth-child(odd) {
-        background-color: #f9f9f9;
-    }
-
-    .table th,
-    .table td {
-        padding: 12px;
-        text-align: center;
-        border-bottom: 1px solid #ddd;
-        font-size: 16px;
-    }
-
-    .table th {
-        background-color: #6A11CB;
-        color: white;
-        font-weight: bold;
-    }
-
-    .table td {
-        color: #555;
-    }
-
-    /* Card Sections */
-    .card {
-        background-color: #fff;
-        border-radius: 12px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        margin: 30px 20px;
-        padding: 30px;
-    }
-
-    /* Logout Button */
-    button {
-        background-color: #FF6347;
-        color: white;
-        font-size: 18px;
-        padding: 12px 24px;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        width: 200px;
-        margin: 30px auto;
-        display: block;
-        transition: background-color 0.3s ease;
-    }
-
-        button:hover {
-            background-color: #e53e3e;
-        }
-
-    /* Responsive Styling */
-    (max-width: 768px) {
-        .summary-content
-
-    {
-        grid-template-columns: 1fr;
-    }
-
-    .summary-item h4 {
-        font-size: 18px;
-    }
-
-    .summary-item p {
-        font-size: 20px;
-    }
-
-    .table th, .table td {
-        font-size: 14px;
-    }
-
-    button {
-        width: 100%;
-    }
-
-    }
-</style>
